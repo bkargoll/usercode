@@ -1,0 +1,213 @@
+#include <map>
+#include <string>
+#include <iostream>
+
+#include "TH1.h"
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "FWCore/ParameterSet/interface/InputTag.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "PhysicsTools/UtilAlgos/interface/TFileService.h"
+
+class PatBasicAnalyzer : public edm::EDAnalyzer {
+
+public:
+  explicit PatBasicAnalyzer(const edm::ParameterSet&);
+  ~PatBasicAnalyzer();
+
+  
+private:
+
+  virtual void beginJob(const edm::EventSetup&) ;
+  virtual void analyze(const edm::Event&, const edm::EventSetup&);
+  virtual void endJob() ;
+  
+  // simple map to contain all histograms; 
+  // histograms are booked in the beginJob() 
+  // method
+  std::map<std::string,TH1F*> histContainer_; 
+
+  // input tags  
+  edm::InputTag photonSrc_;
+  edm::InputTag elecSrc_;
+  edm::InputTag muonSrc_;
+  edm::InputTag tauSrc_;
+  edm::InputTag jetSrc_;
+  edm::InputTag metSrc_;
+
+  int vollhad;
+  int semilep;
+  int dilep;
+  int events;
+  int selektion[100];
+};
+
+#include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Photon.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Tau.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
+
+PatBasicAnalyzer::PatBasicAnalyzer(const edm::ParameterSet& iConfig):
+  histContainer_(),
+  photonSrc_(iConfig.getUntrackedParameter<edm::InputTag>("photonSrc")),
+  elecSrc_(iConfig.getUntrackedParameter<edm::InputTag>("electronSrc")),
+  muonSrc_(iConfig.getUntrackedParameter<edm::InputTag>("muonSrc")),
+  tauSrc_(iConfig.getUntrackedParameter<edm::InputTag>("tauSrc" )),
+  jetSrc_(iConfig.getUntrackedParameter<edm::InputTag>("jetSrc" )),
+  metSrc_(iConfig.getUntrackedParameter<edm::InputTag>("metSrc" ))
+{
+}
+
+PatBasicAnalyzer::~PatBasicAnalyzer()
+{
+}
+
+void
+PatBasicAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{ using namespace std; 
+
+  // get electron collection
+  edm::Handle<edm::View<pat::Electron> > electrons;
+  iEvent.getByLabel(elecSrc_,electrons);
+
+  // get muon collection
+  edm::Handle<edm::View<pat::Muon> > muons;
+  iEvent.getByLabel(muonSrc_,muons);
+
+  // get tau collection  
+  edm::Handle<edm::View<pat::Tau> > taus;
+  iEvent.getByLabel(tauSrc_,taus);
+
+  // get jet collection
+  edm::Handle<edm::View<pat::Jet> > jets;
+  iEvent.getByLabel(jetSrc_,jets);
+
+  // get met collection  
+  edm::Handle<edm::View<pat::MET> > mets;
+  iEvent.getByLabel(metSrc_,mets);
+  
+  // get photon collection  
+  edm::Handle<edm::View<pat::Photon> > photons;
+  iEvent.getByLabel(photonSrc_,photons);
+    
+  // loop over jets
+  size_t nJets0=0;
+  size_t nJets50=0;
+  for(edm::View<pat::Jet>::const_iterator jet=jets->begin(); jet!=jets->end(); ++jet){
+    ++nJets0;
+    if(jet->pt()>50)
+      ++nJets50;
+  }
+  histContainer_["jets0"]->Fill(nJets0);
+  histContainer_["jets50"]->Fill(nJets50);
+
+  // loops over leptons
+  size_t lpt=0;
+  size_t l=0;
+  for(edm::View<pat::Electron>::const_iterator elec=electrons->begin(); elec!=electrons->end(); ++elec){
+    double elm=elec->mass() * 1000000.;
+    histContainer_["electronmass"]->Fill(elm);
+    cout << "ELEKTRONENMASSE:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: " << elm <<endl;
+    ++l;
+    if(elec->pt()>30)
+      ++lpt;
+  }
+  for(edm::View<pat::Muon>::const_iterator muon =muons->begin(); muon!=muons->end(); ++muon){
+    histContainer_["muonmass"]->Fill(muon->mass());
+    ++l;
+    if(muon->pt()>30)
+      ++lpt;
+  }
+  for(edm::View<pat::Tau>::const_iterator tau=taus->begin(); tau!=taus->end(); ++tau){
+    ++l;
+    if(tau->pt()>30)
+      ++lpt;
+  }
+  histContainer_["leptons"]->Fill(l);
+  histContainer_["leptons_pt"]->Fill(lpt);
+
+  // Vergleichs-Histogramm
+  histContainer_["test"]->Fill(electrons->size() + muons->size() + taus->size());
+
+  /*  // do something similar for the other candidates
+  histContainer_["photons"]->Fill(photons->size() );
+  histContainer_["elecs" ]->Fill(electrons->size());
+  histContainer_["muons"]->Fill(muons->size() );
+  histContainer_["taus" ]->Fill(taus->size()  );
+  histContainer_["met"  ]->Fill(mets->empty() ? 0 : (*mets)[0].et());       */
+
+  cout << "Anzahl Leptonen: " << l << "  , davon mit pt>30: " << lpt << endl;
+  cout << "Anzahl Jets: " << nJets0 << "  , davon mit pt>50: " << nJets50 << endl;
+
+  
+  /*
+  //Selektion
+  if ( lpt == 0) {
+    ++vollhad;
+    cout << "Das Ereigniss scheint VOLLHADRONISCH zu sein." << endl;
+    selektion[events] = 1;
+  }
+  else if ( lpt == 1)
+    {++semilep;
+    cout << "Das Ereigniss scheint SEMILEPTONISCH zu sein." << endl;
+    selektion[events] = 2;
+  }
+  else if (lpt > 1 && nJets50 <4) {
+    ++dilep;
+    cout << "Das Ereigniss scheint DILEPTONISCH zu sein." << endl;
+    selektion[events] = 3;
+  }
+  else {
+    ++semilep;
+    cout << "Das Ereigniss scheint SEMILEPTONISCH zu sein." << endl;
+    selektion[events] = 2;
+    }*/
+
+  // Events hochzählen
+  ++events;
+}
+
+void 
+PatBasicAnalyzer::beginJob(const edm::EventSetup&)
+{
+  // register to the TFileService
+  edm::Service<TFileService> fs;
+  
+  // book histograms:
+  /*  histContainer_["photons"]=fs->make<TH1F>("photons", "photon multiplicity",   10, 0,  10);
+  histContainer_["elecs"  ]=fs->make<TH1F>("elecs",   "electron multiplicity", 10, 0,  10);
+  histContainer_["muons"  ]=fs->make<TH1F>("muons",   "muon multiplicity",     10, 0,  10);
+  histContainer_["taus"   ]=fs->make<TH1F>("taus",    "tau multiplicity",      10, 0,  10);
+  histContainer_["met"    ]=fs->make<TH1F>("met",     "missing E_{T}",         20, 0, 100);          */
+  histContainer_["jets50" ]=fs->make<TH1F>("jets50",  "jet pt>50  multiplicity",     10, 0,  10);
+  histContainer_["jets0"  ]=fs->make<TH1F>("jets0",   "jet pt>0  multiplicity",      40, 0,  40);
+  histContainer_["leptons_pt" ]=fs->make<TH1F>("leptons_pt",  "leptons pt>30  multiplicity",     10, 0,  10);
+  histContainer_["leptons"  ]=fs->make<TH1F>("leptons",   "leptons pt>0  multiplicity",      40, 0,  40);
+  histContainer_["test"  ]=fs->make<TH1F>("test",   "leptons pt>0 test",      40, 0,  40);
+  histContainer_["muonmass"]=fs->make<TH1F>("muonmass","muon mass",           20,0.09,0.11) ; 
+  histContainer_["electronmass"]=fs->make<TH1F>("electronmass","electron mass",           50,-5.,5.) ; 
+
+
+  vollhad=0;
+  semilep=0;
+  dilep=0;
+  events=0;
+
+}
+
+void 
+PatBasicAnalyzer::endJob() 
+{
+//   using namespace std;
+//   cout << "             **********ENDERGEBNIS***********" << endl;
+//   cout << "Es gab insgesamt " << vollhad << " vollhadronische, " << semilep << " semileptonische und " << dilep << " dileptonische Events." << endl;
+//   cout << "Dies entspricht " << double(vollhad)/double(events)*100. << "% (45,7%) vollhadronischen, " << double(semilep)/double(events)*100. << "% (43,8%) semileptonischen und " << double(dilep)/double(events)*100. << "% (10,5%) dileptonischen Events." << endl;
+//   cout << selektion << endl;
+}
+
+#include "FWCore/Framework/interface/MakerMacros.h"
+DEFINE_FWK_MODULE(PatBasicAnalyzer);
