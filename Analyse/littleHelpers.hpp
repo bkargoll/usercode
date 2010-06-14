@@ -57,6 +57,16 @@ TH1D* histoFromTree(TString name, TTree* sample, TString variable, TString selec
 	return hist;
 }
 
+// Fit an Histogramm
+TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString histogramParameters = "QN"){
+	TF1 * tempFkt = new TF1("name", kindOfFit);
+	tempFkt->SetRange(plotRangeLeft,plotRangeRight);
+	histogram->Fit(tempFkt,histogramParameters,"",fitRangeLeft,fitRangeRight);
+	tempFkt->SetLineWidth(histogram->GetLineWidth());
+	tempFkt->SetLineColor(histogram->GetLineColor());
+	return tempFkt;
+}
+
 // Statistik-Boxen an den Rand der Canvas malen, automatische Größenanpassung
 void drawStatBox(TH1D* histo, int& step, int nSteps, double FrameSize, int color = -1, int style = 0){
 	TPaveStats* statBox = dynamic_cast<TPaveStats*>( histo->GetListOfFunctions()->FindObject("stats") );
@@ -109,3 +119,5 @@ sample createSample( TString File, TString Subselection, double Crosssection, do
 	Sample.mcEff        = McEff;
 	return Sample;
 }
+
+
