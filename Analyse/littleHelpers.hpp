@@ -48,7 +48,7 @@ TH1D* histoFromTree(TString name, TTree* sample, TString variable, TString selec
 	hist->Sumw2();
 	std::cout << name << ": " << sample->Draw(variable+" >> "+name,selection,options) << " Events gefuellt" << std::endl;
 	//Layout
-	if(xtitle = "test") xtitle = variable;
+	if(xtitle == "test") xtitle = variable;
 	TString ytitle = "Anzahl / %.1f GeV";
 	hist->GetXaxis()->SetTitleOffset(xtitleOffset);
 	hist->GetYaxis()->SetTitleOffset(ytitleOffset);
