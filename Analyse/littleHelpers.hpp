@@ -58,13 +58,19 @@ TH1D* histoFromTree(TString name, TTree* sample, TString variable, TString selec
 }
 
 // Fit an Histogramm
-TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString histogramParameters = "QN"){
+TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString histogramParameters = "QN", bool print = false){
 	TF1 * tempFkt = new TF1("name", kindOfFit);
 	tempFkt->SetRange(plotRangeLeft,plotRangeRight);
 	histogram->Fit(tempFkt,histogramParameters,"",fitRangeLeft,fitRangeRight);
 	tempFkt->SetLineWidth(histogram->GetLineWidth());
 	tempFkt->SetLineColor(histogram->GetLineColor());
 	return tempFkt;
+}
+
+void printFitInfo(TF1* fitFkt){
+	cout << "Parameters of " << fitFkt->GetTitle() << endl;
+	cout << "  Parameter 0: " << fitFkt->GetParameter(0) << " +/- " << fitFkt->GetParError(0) << endl;
+	cout << "  Parameter 1: " << fitFkt->GetParameter(1) << " +/- " << fitFkt->GetParError(0) << endl;
 }
 
 // Statistik-Boxen an den Rand der Canvas malen, automatische Größenanpassung
