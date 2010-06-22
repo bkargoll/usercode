@@ -57,6 +57,22 @@ TH1D* histoFromTree(TString name, TTree* sample, TString variable, TString selec
 	return hist;
 }
 
+// Funktioniert ganz gleich wie TH1D-Version hat nur die muss-Parameter nBins, low und high in y-Richtung mehr (und einen weitern optionablen Parameter für die y-Achse). Typische Aufrufoptionen sind "BOX,goff", zwei Variablen spricht man mit blabla:blublu an.
+TH2D* histoFromTree(TString name, TTree* sample, TString variable, TString selection, unsigned int nBinsX, double lowX, double highX, unsigned int nBinsY, double lowY, double highY, TString options="", TString xtitle = "test", TString ytitle = "test", double xtitleOffset=1.1, double ytitleOffset=1.3){
+	TH2D * hist=new TH2D(name,name,nBinsX,lowX,highX,nBinsY,lowY,highY);
+	hist->Sumw2();
+	std::cout << name << ": " << sample->Draw(variable+" >> "+name,selection,options) << " Events gefuellt" << std::endl;
+	//Layout
+	if(xtitle == "test") xtitle = variable;
+	if(ytitle == "test") ytitle = variable;
+	hist->GetXaxis()->SetTitleOffset(xtitleOffset);
+	hist->GetYaxis()->SetTitleOffset(ytitleOffset);
+	hist->GetXaxis()->SetTitle(xtitle);
+	hist->GetYaxis()->SetTitle(ytitle);
+	// hist->GetYaxis()->SetTitle(Form(ytitle.Data(), hist->GetBinWidth(1)));
+	return hist;
+}
+
 // Fit an Histogramm
 TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString histogramParameters = "QN", bool print = false){
 	TF1 * tempFkt = new TF1("name", kindOfFit);
