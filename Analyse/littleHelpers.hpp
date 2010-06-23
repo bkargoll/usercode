@@ -22,12 +22,11 @@ inline double scale10pb(TTree* sample, double crosssection, double efficiency=1.
 }
 
 // File einlesen und daraus Tree einlesen
-TTree* fileToTree(TString file){
-	TFile *f = new TFile(file);
-	f->cd("Analyze");
+TTree* fileToTree(TString file, TString folder = "Analyze", TString treeName = "Event"){
+        TFile *f = new TFile(file);
+	f->cd(folder);
 	gDirectory->pwd();
-	TTree *Tree=0;
-	gDirectory->GetObject("Event",Tree);
+	TTree *Tree=0; gDirectory->GetObject(treeName,Tree);
 	return Tree;
 }
 
