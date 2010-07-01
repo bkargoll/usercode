@@ -15,7 +15,7 @@
 
 #include "includes.hpp"
 
-// Skalierungsfaktor für verschiedene Sample berechnen, Skalierung auf 10pb-1
+// Skalierungsfaktor fÃ¼r verschiedene Sample berechnen, Skalierung auf 10pb-1
 // crosssection in pb, efficiency = Effizienz der Generator-Selektion
 inline double scale10pb(TTree* sample, double crosssection, double efficiency=1.){
 	return efficiency * crosssection * 10. / sample->GetEntries() ;
@@ -23,7 +23,7 @@ inline double scale10pb(TTree* sample, double crosssection, double efficiency=1.
 
 // File einlesen und daraus Tree einlesen
 TTree* fileToTree(TString file, TString folder = "Analyze", TString treeName = "Event"){
-        TFile *f = new TFile(file);
+	TFile *f = new TFile(file);
 	f->cd(folder);
 	gDirectory->pwd();
 	TTree *Tree=0; gDirectory->GetObject(treeName,Tree);
@@ -56,7 +56,7 @@ TH1D* histoFromTree(TString name, TTree* sample, TString variable, TString selec
 	return hist;
 }
 
-// Funktioniert ganz gleich wie TH1D-Version hat nur die muss-Parameter nBins, low und high in y-Richtung mehr (und einen weitern optionablen Parameter für die y-Achse). Typische Aufrufoptionen sind "BOX,goff", zwei Variablen spricht man mit blabla:blublu an.
+// Funktioniert ganz gleich wie TH1D-Version hat nur die muss-Parameter nBins, low und high in y-Richtung mehr (und einen weitern optionablen Parameter fÃ¼r die y-Achse). Typische Aufrufoptionen sind "BOX,goff", zwei Variablen spricht man mit blabla:blublu an.
 TH2D* histoFromTree(TString name, TTree* sample, TString variable, TString selection, unsigned int nBinsX, double lowX, double highX, unsigned int nBinsY, double lowY, double highY, TString options="", TString xtitle = "test", TString ytitle = "test", double xtitleOffset=1.1, double ytitleOffset=1.3){
 	TH2D * hist=new TH2D(name,name,nBinsX,lowX,highX,nBinsY,lowY,highY);
 	hist->Sumw2();
@@ -82,13 +82,42 @@ TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", doubl
 	return tempFkt;
 }
 
+TF1* fitToGraph(TString name, TGraphErrors * graph, TString kindOfFit = "pol1", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString parameters = "QN"){
+	TF1 * tempFkt = new TF1("name", kindOfFit);
+	tempFkt->SetRange(plotRangeLeft,plotRangeRight);
+	graph->Fit(tempFkt,parameters,"",fitRangeLeft,fitRangeRight);
+	tempFkt->SetLineWidth(graph->GetLineWidth());
+	tempFkt->SetLineColor(graph->GetLineColor());
+	return tempFkt;
+}
+
+TF1* fitToGraph(TString name, TGraph * graph, TString kindOfFit = "pol1", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString parameters = "QN"){
+	TF1 * tempFkt = new TF1("name", kindOfFit);
+	tempFkt->SetRange(plotRangeLeft,plotRangeRight);
+	graph->Fit(tempFkt,parameters,"",fitRangeLeft,fitRangeRight);
+	tempFkt->SetLineWidth(graph->GetLineWidth());
+	tempFkt->SetLineColor(graph->GetLineColor());
+	return tempFkt;
+}
+
 void printFitInfo(TF1* fitFkt){
 	cout << "Parameters of " << fitFkt->GetTitle() << endl;
 	cout << "  Parameter 0: " << fitFkt->GetParameter(0) << " +/- " << fitFkt->GetParError(0) << endl;
 	cout << "  Parameter 1: " << fitFkt->GetParameter(1) << " +/- " << fitFkt->GetParError(0) << endl;
 }
 
-// Statistik-Boxen an den Rand der Canvas malen, automatische Größenanpassung
+TGraphErrors* graphForCalibration(std::vector<TF1* >& functions, std::vector<double>& masses, std::vector<double>& errMasses, int funcParameter = 1) {
+	TGraphErrors * tempGraph = new TGraphErrors();
+	int nOfElements = functions.size();
+	for (int i = 0; i < nOfElements; i++) {
+		tempGraph->SetPoint(i,masses[i],functions[i]->GetParameter(funcParameter));
+		tempGraph->SetPointError(i,errMasses[i],functions[i]->GetParError(funcParameter));
+	}
+	return tempGraph;
+}
+
+
+// Statistik-Boxen an den Rand der Canvas malen, automatische GrÃ¶ÃŸenanpassung
 void drawStatBox(TH1D* histo, int& step, int nSteps, double FrameSize, int color = -1, int style = 0){
 	TPaveStats* statBox = dynamic_cast<TPaveStats*>( histo->GetListOfFunctions()->FindObject("stats") );
 
@@ -105,7 +134,7 @@ void drawStatBox(TH1D* histo, int& step, int nSteps, double FrameSize, int color
 	statBox->Draw();
 	step++;
 }
-// überladen: Statbox-Größen manuell eingeben
+// Ã¼berladen: Statbox-GrÃ¶ÃŸen manuell eingeben
 void drawStatBox(int& step, TH1D* histo, int color = -1, double statboxHeight = 0.1,  double statboxSpacing = 0.15){
 	TPaveStats* statBox = dynamic_cast<TPaveStats*>( histo->GetListOfFunctions()->FindObject("stats") );
 
@@ -119,7 +148,7 @@ void drawStatBox(int& step, TH1D* histo, int color = -1, double statboxHeight = 
 	step++;
 }
 
-// struct als Container für alle wichtigen Größen eines Datensatzes
+// struct als Container fÃ¼r alle wichtigen GrÃ¶ÃŸen eines Datensatzes
 struct sample{
 	TTree* tree;
 	TString file;

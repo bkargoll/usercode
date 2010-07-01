@@ -5,6 +5,7 @@
 #include <TH1F.h>
 #include <TH1D.h>
 #include <TH2D.h>
+#include <TGraphErrors.h>
 #include <TString.h>
 #include <TFile.h>
 #include <TTree.h>
