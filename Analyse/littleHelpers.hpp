@@ -22,11 +22,12 @@ inline double scale10pb(TTree* sample, double crosssection, double efficiency=1.
 }
 
 // crosssection in orders of picobarn
-inline double scaleToLumi(TTree* sample, double crosssection, double efficiency=1., double lumi = 1e15){
+// default scaled to 1fb-1
+inline double scaleToLumi(TTree* sample, double crosssection, double efficiency=1., double lumi = 1000){
 	if (crosssection < 1 ) {
 		cout << "Attention! Crosssections used in function scaleToLumi have to be in orders of picobarn! You probably used a value of magnitude barn." << endl;
 	}
-	return efficiency * crosssection * 1e-12 * lumi / sample->GetEntries() ;
+	return efficiency * crosssection * lumi / sample->GetEntries() ;
 }
 
 // File einlesen und daraus Tree einlesen
@@ -39,7 +40,7 @@ TTree* fileToTree(TString file, TString folder = "Analyze", TString treeName = "
 }
 
 // File einlesen, daraus Tree einlesen und diesen skalieren
-TTree* fileToScaledTree(TString file, double crosssection, double efficiency=1., double lumi = 1e12){
+TTree* fileToScaledTree(TString file, double crosssection, double efficiency=1., double lumi = 10){
 	TFile *f = new TFile(file);
 	f->cd("Analyze");
 	gDirectory->pwd();
