@@ -1,6 +1,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 #include <TH1F.h>
 #include <TH1D.h>

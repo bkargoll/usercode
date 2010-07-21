@@ -22,11 +22,8 @@ inline double scale10pb(TTree* sample, double crosssection, double efficiency=1.
 }
 
 // crosssection in orders of picobarn
-// default scaled to 1fb-1
+// default scaled to 1fb-1fb
 inline double scaleToLumi(TTree* sample, double crosssection, double efficiency=1., double lumi = 1000){
-	if (crosssection < 1 ) {
-		cout << "Attention! Crosssections used in function scaleToLumi have to be in orders of picobarn! You probably used a value of magnitude barn." << endl;
-	}
 	return efficiency * crosssection * lumi / sample->GetEntries() ;
 }
 
@@ -40,13 +37,13 @@ TTree* fileToTree(TString file, TString folder = "Analyze", TString treeName = "
 }
 
 // File einlesen, daraus Tree einlesen und diesen skalieren
-TTree* fileToScaledTree(TString file, double crosssection, double efficiency=1., double lumi = 10){
+TTree* fileToScaledTree(TString file, double crosssection, double efficiency=1., double lumi = 10.){
 	TFile *f = new TFile(file);
 	f->cd("Analyze");
 	gDirectory->pwd();
 	TTree *Tree=0; gDirectory->GetObject("Event",Tree);
 	// double scale = scale10pb(Tree, crosssection , efficiency); // old, used by Bastian but converted by Andreas to new
-	double scale = scaleToLumi(Tree, crosssection, efficiency, lumi)
+	double scale = scaleToLumi(Tree, crosssection, efficiency, lumi);
 	Tree->SetWeight(scale);
 	return Tree;
 }
@@ -83,8 +80,8 @@ TH2D* histoFromTree(TString name, TTree* sample, TString variable, TString selec
 }
 
 // Fit an Histogramm
-TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString histogramParameters = "QN", bool print = false){
-	TF1 * tempFkt = new TF1("name", kindOfFit);
+TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString histogramParameters = "QN"){
+	TF1 * tempFkt = new TF1(name, kindOfFit);
 	tempFkt->SetRange(plotRangeLeft,plotRangeRight);
 	histogram->Fit(tempFkt,histogramParameters,"",fitRangeLeft,fitRangeRight);
 	tempFkt->SetLineWidth(histogram->GetLineWidth());
@@ -93,7 +90,7 @@ TF1* fitToHist(TString name, TH1D * histogram, TString kindOfFit = "expo", doubl
 }
 
 TF1* fitToGraph(TString name, TGraphErrors * graph, TString kindOfFit = "pol1", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString parameters = "QN"){
-	TF1 * tempFkt = new TF1("name", kindOfFit);
+	TF1 * tempFkt = new TF1(name, kindOfFit);
 	tempFkt->SetRange(plotRangeLeft,plotRangeRight);
 	graph->Fit(tempFkt,parameters,"",fitRangeLeft,fitRangeRight);
 	tempFkt->SetLineWidth(graph->GetLineWidth());
@@ -102,7 +99,7 @@ TF1* fitToGraph(TString name, TGraphErrors * graph, TString kindOfFit = "pol1", 
 }
 
 TF1* fitToGraph(TString name, TGraph * graph, TString kindOfFit = "pol1", double fitRangeLeft = 0., double fitRangeRight = 5., double plotRangeLeft = 0., double plotRangeRight = 5., TString parameters = "QN"){
-	TF1 * tempFkt = new TF1("name", kindOfFit);
+	TF1 * tempFkt = new TF1(name, kindOfFit);
 	tempFkt->SetRange(plotRangeLeft,plotRangeRight);
 	graph->Fit(tempFkt,parameters,"",fitRangeLeft,fitRangeRight);
 	tempFkt->SetLineWidth(graph->GetLineWidth());
