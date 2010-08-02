@@ -37,11 +37,11 @@ TTree* fileToTree(TString file, TString folder = "Analyze", TString treeName = "
 }
 
 // File einlesen, daraus Tree einlesen und diesen skalieren
-TTree* fileToScaledTree(TString file, double crosssection, double efficiency=1., double lumi = 10.){
+TTree* fileToScaledTree(TString file, double crosssection, double efficiency=1., double lumi = 10., TString folder = "Analyze", TString treeName = "Event"){
 	TFile *f = new TFile(file);
-	f->cd("Analyze");
+	f->cd(folder);
 	gDirectory->pwd();
-	TTree *Tree=0; gDirectory->GetObject("Event",Tree);
+	TTree *Tree=0; gDirectory->GetObject(treeName,Tree);
 	// double scale = scale10pb(Tree, crosssection , efficiency); // old, used by Bastian but converted by Andreas to new
 	double scale = scaleToLumi(Tree, crosssection, efficiency, lumi);
 	Tree->SetWeight(scale);
