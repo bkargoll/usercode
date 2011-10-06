@@ -1,0 +1,38 @@
+import FWCore.ParameterSet.Config as cms
+
+process = cms.Process("decayTreeDrawer")
+
+process.load("Configuration.EventContent.EventContent_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+#process.GlobalTag.globaltag = 'START42_V11::All' #off. DYToTauTau
+process.GlobalTag.globaltag = 'START42_V6::All' #Vladimirs Sample
+process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
+process.load("FWCore.MessageService.MessageLogger_cfi")
+
+process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(100))
+process.MessageLogger.cerr.FwkReport.reportEvery = 1
+
+# input files
+#inputDir = '/user/kargoll/ZtautauSM/3a40cf5c572f03c73d0aee82b8fe5cca/'
+#filesDat = open("/user/kargoll/ZtautauSM/ZtautauSM.dat", "r")
+##inputDir = '/user/kargoll/WJet_14_05_11_HLT/3a40cf5c572f03c73d0aee82b8fe5cca/'
+##filesDat = open("/user/kargoll/WJet_14_05_11_HLT/WJet_14_05_11_HLT.dat","r")
+#fileList = []
+#for file in filesDat:
+#    fileList.append('file:' + inputDir + file.strip())
+#process.source = cms.Source("PoolSource",
+#    fileNames=cms.untracked.vstring(fileList)
+#)
+process.load("GenLevelTools.GenTauChecker.DYToTauTau_local_cff")
+
+process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
+process.printTree = cms.EDAnalyzer("ParticleTreeDrawer",
+                                   src = cms.InputTag("genParticles"),                                                                 
+                                   printP4 = cms.untracked.bool(False),
+                                   printPtEtaPhi = cms.untracked.bool(False),
+                                   printVertex = cms.untracked.bool(False),
+                                   printStatus = cms.untracked.bool(True),
+                                   printIndex = cms.untracked.bool(True)
+                                   )
+process.p = cms.Path( process.printTree)
+
