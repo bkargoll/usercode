@@ -58,7 +58,7 @@ def histograms(fileName, labelOffline, labelL1, labelL2,labelL2p5, labelL3, L2Pt
     denominator = ROOT.TH1F("denominator","",len(xbin)-1,xbins)
     denominatorJet = ROOT.TH1F("denominatorJet","",len(xbin)-1,xbins)
     
-    nTaus = ROOT.TH1I("NTaus","",100,-0.5,99.5)
+    nTaus = ROOT.TH1I("NTaus","",20,-0.5,19.5)
     # xbinEta = [0.,0.5,1.,1.5,2.5]
     # xbinsEta = array.array('d',xbinEta)
     # numeratorEta = ROOT.TH1F("numeratorEta","",len(xbinEta)-1,xbinsEta)
@@ -82,7 +82,7 @@ def histograms(fileName, labelOffline, labelL1, labelL2,labelL2p5, labelL3, L2Pt
     for event in events:
         NEvt += 1
         if NEvt % 1000 == 0: print "Process Event ", NEvt
-        #if NEvt > 20: break
+        if NEvt > 2000: break
          
         # getting the handle from the event
         event.getByLabel(labelOffline, TauHandle)
@@ -132,14 +132,15 @@ def histograms(fileName, labelOffline, labelL1, labelL2,labelL2p5, labelL3, L2Pt
         for muon in muons:
              if muon.pt()<10: continue
              if abs(muon.eta()) > 2.1: continue
-             #apply vertex cuts which have been missing before
+             #apply vertex cuts which have been missing in muon selection before
              if abs(muon.innerTrack().dxy(offlinevertex)) > 0.045: continue
              if abs(muon.innerTrack().dz(offlinevertex)) > 0.1: continue
              myMuons.append((muon.pt(), muon))
         myMuons.sort()
         # get at least 1 muon
-        
         if len(myMuons) < 1: continue 
+        # additional muon veto
+        if len(myMuons) > 1: continue
         NEvtMuon += 1
         muon = myMuons.pop()[1]
         MT = (muon.pt()+met.pt())*(muon.pt()+met.pt())-(muon.px()+met.px())*(muon.px()+met.px()) - (muon.py()+met.py())*(muon.py()+met.py())
@@ -149,57 +150,27 @@ def histograms(fileName, labelOffline, labelL1, labelL2,labelL2p5, labelL3, L2Pt
         if MT > MTCut: continue
         NEvtMuonMT += 1
 
-        '''
-        # taking the offline PFJet
-        myJets = []
-        for jet in offlineJets:
-             if jet.pt() < 10: continue
-             if abs(jet.eta()) > 3.0: continue
-             matched = False
-             for tau in offlineTaus:
-                  dr = deltaR(tau.eta(),tau.phi(),jet.eta(),jet.phi())
-                  if dr <0.3:
-                       matched = True
-                       break
-             if not(matched):
-                  myJets.append((jet.pt(),jet))
-
-        myJets.sort()
-        if len(myJets) < 1: continue    
-        myJet = myJets.pop()[1]
-        if deltaR(myJet.eta(),myJet.phi(), muon.eta(),muon.phi()) < 0.3:
-             if len(myJets) > 0:
-                  myJet = myJets.pop()[1]
-                  denominatorJet.Fill(myJet.pt())
-        else:
-             denominatorJet.Fill(myJet.pt())
-        for jet in l2Jets:
-             if jet.pt() < 25.: continue
-             if abs(jet.eta())>3.0: continue
-             if deltaR(jet.eta(),jet.phi(), myJet.eta(), myJet.phi()) < 0.5:
-                numeratorJet.Fill(myJet.pt())
-        '''
-        
+   
         #select best tau
         cntTaus = 0
         tau = None
-        mTau = 1.77682
-        #mZ = 91.188
         bestZmass = 999999.0
         for iTau in offlineTaus:
             cntTaus += 1
             if iTau.pt() < 5: continue
             if abs(iTau.eta()) > 2.1: continue
+            # muon and tau with opposite charge
             if iTau.charge() != -1 * muon.charge(): continue
-            #print "offlineProngs = ", offlineProngs, " signalPFChargedHadrCands.size() = ", iTau.signalPFChargedHadrCands().size()
+            # require seperation between muon and tau
+            dR_mutau = deltaR(iTau.eta(),iTau.phi(),muon.eta(),muon.phi())
+            if dR_mutau < 0.5 : continue
+            # make sure tau has a leading track, which is needed later for the dZ cut
+            if not iTau.leadPFChargedHadrCand().trackRef().isNonnull(): continue
+            # offline taus: only 1prongs, only 3prongs or all?
             if not offlineProngs == 0:
                 if not iTau.signalPFChargedHadrCands().size() == offlineProngs: continue
-            # if not (tau.leadPFChargedHadrCand().isNonnull()): continue
-            # if not tau.leadPFChargedHadrCand().particleId() == 1: continue
-            # if tau.leadPFChargedHadrCand().pt() < 5 : continue
-            # if (tau.signalPFChargedHadrCands().size() < 2): continue        
             NEvtMuonMTTau += 1
-            Zmass = 2*(mTau*mTau + muon.energy()*iTau.energy() - muon.px()*iTau.px() - muon.py()*iTau.py() - muon.pz()*iTau.pz())
+            Zmass = 2*(iTau.mass()*muon.mass() + muon.energy()*iTau.energy() - muon.px()*iTau.px() - muon.py()*iTau.py() - muon.pz()*iTau.pz())
             Zmass = math.sqrt(Zmass)
             invM.Fill(Zmass)
             if tau == None:
@@ -227,22 +198,27 @@ def histograms(fileName, labelOffline, labelL1, labelL2,labelL2p5, labelL3, L2Pt
         myL3Taus = []
         for l1Tau in l1Taus:
              if l1Tau.pt() < 44: continue
+             if abs(l1Tau.eta()) > 2.1: continue
              dr = deltaR(tau.eta(),tau.phi(),l1Tau.eta(),l1Tau.phi())
              myL1Taus.append((dr, l1Tau))            
         for l1Jet in l1Jets:
              if l1Jet.pt() < 64: continue
+             if abs(l1Jet.eta()) > 2.1: continue
              dr = deltaR(tau.eta(),tau.phi(),l1Jet.eta(),l1Jet.phi())
              myL1Jets.append((dr,l1Jet))
         for l2Tau in l2Taus:
              if l2Tau.pt() < L2PtCut: continue
+             if abs(l2Tau.eta()) > 2.1: continue
              dr = deltaR(tau.eta(),tau.phi(),l2Tau.eta(),l2Tau.phi())
              myL2Taus.append((dr, l2Tau))            
         for l2p5Tau in l2p5Taus:
              if l2p5Tau.pt() < L2PtCut: continue
+             if abs(l2p5Tau.eta()) > 2.1: continue
              dr = deltaR(tau.eta(),tau.phi(),l2p5Tau.eta(),l2p5Tau.phi())
              myL2p5Taus.append((dr, l2p5Tau))            
         for l3Tau in l3Taus:
              if l3Tau.pt() < L3PtCut: continue
+             if abs(l3Tau.eta()) > 2.1: continue
              dr = deltaR(tau.eta(),tau.phi(),l3Tau.eta(),l3Tau.phi())
              myL3Taus.append((dr, l3Tau))            
 
@@ -275,17 +251,15 @@ def histograms(fileName, labelOffline, labelL1, labelL2,labelL2p5, labelL3, L2Pt
         if len(myL3Taus) >0:
              myL3Taus.sort()
              if myL3Taus[0][0] < matchingConeHLT:
-                 
                   if myL3Taus[0][1].leadPFChargedHadrCand().isNonnull():
                        if myL3Taus[0][1].signalPFChargedHadrCands().size() < nProngsCut:
-                           if tau.leadPFChargedHadrCand().trackRef().isNonnull():
-                               if myL3Taus[0][1].leadPFChargedHadrCand().trackRef().isNonnull():
-                                   dZ = abs(tau.leadPFChargedHadrCand().trackRef().dz(offlinevertex) - myL3Taus[0][1].leadPFChargedHadrCand().trackRef().dz(offlinevertex))
-                                   deltaZTauTau.Fill(dZ)
-                                   if dZ < dZCut:
-                                       foundL3 = True
-                                       numeratorL3.Fill(tau.pt())
-                                       NMatchedL3 += 1
+                           if myL3Taus[0][1].leadPFChargedHadrCand().trackRef().isNonnull():
+                               dZ = abs(tau.leadPFChargedHadrCand().trackRef().dz(offlinevertex) - myL3Taus[0][1].leadPFChargedHadrCand().trackRef().dz(offlinevertex))
+                               deltaZTauTau.Fill(dZ)
+                               if dZ < dZCut:
+                                   foundL3 = True
+                                   numeratorL3.Fill(tau.pt())
+                                   NMatchedL3 += 1
 
         
         if foundL1 and foundL2 :
@@ -323,57 +297,60 @@ frame = ROOT.TH1F("frame","",len(xbin)-1,xbins)
 frame.SetMinimum(0.01)
 frame.SetMaximum(1.01)
 
-
-## Run2012A
-dataset = "Run2012A"
-folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/HLTrerunDoubleTauJet_v3/"
-files = ["hltDoubleTauJet_offlineSelectedMuTau_3_1_n7X.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_5_1_Dzk.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_4_1_rwb.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_7_1_xgB.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_2_1_Aey.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_1_1_ETO.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_6_1_I6O.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_8_1_p0U.root"]
-'''
-## Run2012B FirstPart
-dataset = "FirstPartRun2012B"
-folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/Run2012B/FirstPart/HLTrerunDoubleTauJet_v3/"
-files = ["hltDoubleTauJet_offlineSelectedMuTau_3_1_zKI.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_6_1_xJO.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_5_1_HEZ.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_7_1_sAD.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_2_1_LgX.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_4_1_rur.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_1_1_d6N.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_8_1_UDb.root"] 
-
-## Run2012B SecondPart
-dataset = "SecondPartRun2012B"
-folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/Run2012B/SecondPart/HLTrerunDoubleTauJet_v3/"
-files = ["hltDoubleTauJet_offlineSelectedMuTau_3_1_bxj.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_1_1_wS5.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_5_1_PN8.root", 
-         "hltDoubleTauJet_offlineSelectedMuTau_4_1_SJ5.root",
-         "hltDoubleTauJet_offlineSelectedMuTau_2_1_f1K.root"] 
-
-## Run2012B ThirdPart
-dataset = "ThirdPartRun2012B"
-folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/Run2012B/ThirdPart/HLTrerunDoubleTauJet_v3/"
-files = ["hltDoubleTauJet_offlineSelectedMuTau_1_1_dfk.root"]
-'''
-
+### define input
+dataset = "Whole2012"
 input = []
-for file in files:
-    input.append(folder+file)
 
-offlineTauLabel = "offlineSelectedTausXXMisomvaMelecrej" #"offlineSelectedTausH2TauJetMVAEle" #offlineSelectedTausMuTauBaseline
+if dataset == "Whole2012" or dataset == "Run2012A":
+    print "Process Run2012A..."
+    folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/HLTrerunDoubleTauJet_v3/"
+    files = ["hltDoubleTauJet_offlineSelectedMuTau_3_1_n7X.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_5_1_Dzk.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_4_1_rwb.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_7_1_xgB.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_2_1_Aey.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_1_1_ETO.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_6_1_I6O.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_8_1_p0U.root"]
+    for file in files:
+        input.append(folder+file)
+
+if dataset == "Whole2012" or dataset == "Run2012B":
+    print "Process Run2012B Part 1..."
+    folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/Run2012B/FirstPart/HLTrerunDoubleTauJet_v3/"
+    files = ["hltDoubleTauJet_offlineSelectedMuTau_3_1_zKI.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_6_1_xJO.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_5_1_HEZ.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_7_1_sAD.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_2_1_LgX.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_4_1_rur.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_1_1_d6N.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_8_1_UDb.root"] 
+    for file in files:
+        input.append(folder+file)     
+    print "Process Run2012B Part 2..."
+    folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/Run2012B/SecondPart/HLTrerunDoubleTauJet_v3/"
+    files = ["hltDoubleTauJet_offlineSelectedMuTau_3_1_bxj.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_1_1_wS5.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_5_1_PN8.root", 
+             "hltDoubleTauJet_offlineSelectedMuTau_4_1_SJ5.root",
+             "hltDoubleTauJet_offlineSelectedMuTau_2_1_f1K.root"]
+    for file in files:
+        input.append(folder+file)
+    print "Process Run2012B Part 3..."
+    folder = "dcap://grid-dcap.physik.rwth-aachen.de/pnfs/physik.rwth-aachen.de/cms/store/user/bkargoll/TriggerEfficiencies/SingleMuDataset/MuTauSkim/Run2012B/ThirdPart/HLTrerunDoubleTauJet_v3/"
+    files = ["hltDoubleTauJet_offlineSelectedMuTau_1_1_dfk.root"]
+    for file in files:
+        input.append(folder+file)
+
+
+offlineTauLabel = "offlineSelectedTausXXMisodbMelecrej" #"offlineSelectedTausH2TauJetMVAEle" #offlineSelectedTausMuTauBaseline
 l1Label = "hltL1extraParticles"
 l2Label = "hltL2TauJets"
 l2p5Label = "hltL2TauJetsIso"
 l3Label = "hltSelectedPFTausTrackPt5MediumIsolation"
 l2Pt = 30
-l3Pt = 25
+l3Pt = 30
 MT = 40
 nProngs = 5
 dZ = 0.2
